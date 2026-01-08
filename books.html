@@ -1,0 +1,2095 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能图书借阅管理系统 (Vue 3)</title>
+    
+    <!-- Element Plus CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/element-plus@2.3.0/dist/index.css">
+    
+    <!-- 数据可视化库 -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.0/dist/echarts.min.js"></script>
+    
+    <!-- Vue 3 CDN -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    
+    <!-- Element Plus JS -->
+    <script src="https://unpkg.com/element-plus@2.3.0/dist/index.full.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        #app {
+            width: 100%;
+            max-width: 1400px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            min-height: 90vh;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+        
+        .nav {
+            background: #f8f9fa;
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .content {
+            padding: 30px;
+            min-height: 400px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 1px solid #e9ecef;
+            text-align: center;
+            transition: transform 0.3s;
+            height: 100%;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+        }
+        
+        .stat-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+        
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #667eea;
+            margin: 10px 0;
+        }
+        
+        .stat-title {
+            color: #6c757d;
+            font-size: 14px;
+        }
+        
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+        
+        .scroll-container {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+        }
+        
+        .book-cover {
+            width: 50px;
+            height: 70px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+        
+        .book-info h4 {
+            margin-bottom: 5px;
+            color: #495057;
+        }
+        
+        .book-info p {
+            color: #6c757d;
+            font-size: 14px;
+        }
+        
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+        }
+        
+        .status-available {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-borrowed {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-overdue {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status-returned {
+            background: #cce5ff;
+            color: #004085;
+        }
+        
+        .days-remaining {
+            font-weight: bold;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        .days-normal {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .days-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .days-danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .list-item {
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .list-item:last-child {
+            border-bottom: none;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .chart-container {
+            height: 300px;
+            margin-top: 20px;
+            position: relative;
+        }
+        
+        /* 自定义Element Plus样式 */
+        .custom-card {
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+        
+        .custom-table {
+            width: 100%;
+        }
+        
+        .custom-table .el-table__row:hover {
+            background-color: #f8f9fa !important;
+        }
+        
+        .custom-table .el-table__header th {
+            background-color: #f8f9fa !important;
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .el-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .nav {
+                overflow-x: auto;
+                flex-wrap: nowrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app"></div>
+
+    <script>
+        // 导入Vue
+        const { createApp, ref, computed, onMounted, watch, reactive } = Vue;
+        
+        // ================== 工具函数 ==================
+        
+        // 日期格式化
+        function formatDate(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // 获取默认图书数据
+        function getDefaultBooks() {
+            return [
+                {
+                    id: '1',
+                    title: 'JavaScript高级程序设计',
+                    author: '尼古拉斯·泽卡斯',
+                    isbn: '9787115275790',
+                    category: '科技',
+                    publisher: '人民邮电出版社',
+                    price: 99.00,
+                    totalCopies: 5,
+                    availableCopies: 5,
+                    description: 'JavaScript经典著作，前端开发必备',
+                    status: 'available'
+                },
+                {
+                    id: '2',
+                    title: '活着',
+                    author: '余华',
+                    isbn: '9787506365437',
+                    category: '文学',
+                    publisher: '作家出版社',
+                    price: 28.00,
+                    totalCopies: 3,
+                    availableCopies: 3,
+                    description: '讲述了一个人和他的命运之间的友情',
+                    status: 'available'
+                },
+                {
+                    id: '3',
+                    title: 'React设计原理',
+                    author: '卡颂',
+                    isbn: '9787115592361',
+                    category: '科技',
+                    publisher: '电子工业出版社',
+                    price: 89.00,
+                    totalCopies: 4,
+                    availableCopies: 4,
+                    description: '深入理解React内部机制',
+                    status: 'available'
+                },
+                {
+                    id: '4',
+                    title: '百年孤独',
+                    author: '加西亚·马尔克斯',
+                    isbn: '9787020008728',
+                    category: '文学',
+                    publisher: '南海出版公司',
+                    price: 39.50,
+                    totalCopies: 2,
+                    availableCopies: 2,
+                    description: '魔幻现实主义文学代表作',
+                    status: 'available'
+                },
+                {
+                    id: '5',
+                    title: '西游记',
+                    author: '吴承恩',
+                    isbn: '9787020008729',
+                    category: '文学',
+                    publisher: '人民文学出版社',
+                    price: 45.00,
+                    totalCopies: 2,
+                    availableCopies: 2,
+                    description: '中国古典四大名著之一',
+                    status: 'available'
+                }
+            ];
+        }
+
+        // 获取默认预约数据
+        function getDefaultReservations() {
+            const today = new Date();
+            return [
+                {
+                    id: '1',
+                    bookId: '6',
+                    bookTitle: '人类简史',
+                    userName: '李四',
+                    userContact: '657836',
+                    reservationDate: formatDate(today),
+                    status: 'notified',
+                    notifyDate: formatDate(today),
+                    notifyCount: 1
+                },
+                {
+                    id: '2',
+                    bookId: '5',
+                    bookTitle: '西游记',
+                    userName: '王五',
+                    userContact: '485937',
+                    reservationDate: formatDate(today),
+                    status: 'notified',
+                    notifyDate: formatDate(today),
+                    notifyCount: 1
+                }
+            ];
+        }
+
+        // ================== Vue 组件 ==================
+        
+        // 头部组件
+        const Header = {
+            template: `
+                <div class="header">
+                    <span style="font-size: 30px;">📚</span>
+                    <h1>智能图书借阅管理系统 (Vue 3)</h1>
+                </div>
+            `
+        };
+
+        // 导航菜单组件
+        const NavMenu = {
+            props: ['currentPage'],
+            emits: ['change-page'],
+            template: `
+                <div class="nav">
+                    <el-button 
+                        :type="currentPage === 'dashboard' ? 'primary' : ''"
+                        @click="$emit('change-page', 'dashboard')"
+                        plain
+                    >
+                        📊 仪表板
+                    </el-button>
+                    
+                    <el-button 
+                        :type="currentPage === 'books' ? 'primary' : ''"
+                        @click="$emit('change-page', 'books')"
+                        plain
+                    >
+                        📚 图书管理
+                    </el-button>
+                    
+                    <el-button 
+                        :type="currentPage === 'borrow' ? 'primary' : ''"
+                        @click="$emit('change-page', 'borrow')"
+                        plain
+                    >
+                        📖 借阅管理
+                    </el-button>
+                    
+                    <el-button 
+                        :type="currentPage === 'reservations' ? 'primary' : ''"
+                        @click="$emit('change-page', 'reservations')"
+                        plain
+                    >
+                        🔔 预约管理
+                    </el-button>
+                    
+                    <el-button 
+                        :type="currentPage === 'scan' ? 'primary' : ''"
+                        @click="$emit('change-page', 'scan')"
+                        plain
+                    >
+                        📷 扫码添加
+                    </el-button>
+                </div>
+            `
+        };
+
+        // 仪表板组件
+        const Dashboard = {
+            setup() {
+                const { ElMessage, ElMessageBox, ElNotification } = ElementPlus;
+                
+                // 响应式数据
+                const books = ref(JSON.parse(localStorage.getItem('library_books')) || getDefaultBooks());
+                const borrows = ref(JSON.parse(localStorage.getItem('library_borrows')) || []);
+                const reservations = ref(JSON.parse(localStorage.getItem('library_reservations')) || getDefaultReservations());
+                
+                // 保存数据函数
+                const saveBooks = () => {
+                    localStorage.setItem('library_books', JSON.stringify(books.value));
+                };
+                
+                const saveBorrows = () => {
+                    localStorage.setItem('library_borrows', JSON.stringify(borrows.value));
+                };
+                
+                const saveReservations = () => {
+                    localStorage.setItem('library_reservations', JSON.stringify(reservations.value));
+                };
+                
+                // 计算属性
+                const totalBooks = computed(() => books.value.length);
+                const availableBooks = computed(() => books.value.filter(book => book.availableCopies > 0).length);
+                const borrowedBooks = computed(() => books.value.filter(book => book.availableCopies < book.totalCopies).length);
+                
+                const currentBorrows = computed(() => borrows.value.filter(borrow => !borrow.returnDate));
+                const overdueBorrows = computed(() => borrows.value.filter(borrow => {
+                    if (borrow.returnDate) return false;
+                    const dueDate = new Date(borrow.dueDate);
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    return dueDate < today;
+                }));
+                const upcomingReturns = computed(() => borrows.value.filter(borrow => {
+                    if (borrow.returnDate) return false;
+                    const dueDate = new Date(borrow.dueDate);
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const daysRemaining = Math.ceil((dueDate - today) / (1000 * 3600 * 24));
+                    return daysRemaining >= 0 && daysRemaining <= 7;
+                }));
+                
+                const borrowRankings = computed(() => {
+                    const counts = {};
+                    borrows.value.forEach(borrow => {
+                        if (!counts[borrow.bookTitle]) {
+                            counts[borrow.bookTitle] = {
+                                count: 0,
+                                bookId: borrow.bookId
+                            };
+                        }
+                        counts[borrow.bookTitle].count++;
+                    });
+                    
+                    return Object.entries(counts)
+                        .map(([title, data]) => ({
+                            title,
+                            count: data.count,
+                            bookId: data.bookId
+                        }))
+                        .sort((a, b) => b.count - a.count)
+                        .slice(0, 10);
+                });
+                
+                const categoryStats = computed(() => {
+                    const stats = {};
+                    books.value.forEach(book => {
+                        if (!stats[book.category]) {
+                            stats[book.category] = { total: 0, borrowed: 0 };
+                        }
+                        stats[book.category].total++;
+                        if (book.availableCopies < book.totalCopies) {
+                            stats[book.category].borrowed++;
+                        }
+                    });
+                    return Object.entries(stats).map(([category, data]) => ({
+                        category,
+                        total: data.total,
+                        borrowed: data.borrowed,
+                        rate: (data.borrowed / data.total * 100).toFixed(1)
+                    }));
+                });
+                
+                // 图表实例
+                let bookRankingChart = null;
+                let categoryChart = null;
+                
+                // 初始化图表
+                const initCharts = () => {
+                    // 图书借阅排行榜图表
+                    const bookRankingsData = borrowRankings.value;
+                    if (bookRankingsData.length > 0) {
+                        const bookChartDom = document.getElementById('bookRankingsChart');
+                        if (bookChartDom && echarts) {
+                            bookRankingChart = echarts.init(bookChartDom);
+                            const bookTitles = bookRankingsData.map(item => item.title);
+                            const bookCounts = bookRankingsData.map(item => item.count);
+                            
+                            const bookOption = {
+                                title: {
+                                    text: '📚 热门借阅图书 TOP 10',
+                                    left: 'center'
+                                },
+                                tooltip: {
+                                    trigger: 'axis'
+                                },
+                                xAxis: {
+                                    type: 'category',
+                                    data: bookTitles,
+                                    axisLabel: {
+                                        rotate: 45
+                                    }
+                                },
+                                yAxis: {
+                                    type: 'value',
+                                    name: '借阅次数'
+                                },
+                                series: [{
+                                    data: bookCounts,
+                                    type: 'bar',
+                                    itemStyle: {
+                                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                            { offset: 0, color: '#667eea' },
+                                            { offset: 1, color: '#764ba2' }
+                                        ])
+                                    }
+                                }]
+                            };
+                            bookRankingChart.setOption(bookOption);
+                        }
+                    }
+                    
+                    // 分类借阅分析图表
+                    const categoryData = categoryStats.value;
+                    if (categoryData.length > 0) {
+                        const categoryChartDom = document.getElementById('categoryChart');
+                        if (categoryChartDom && echarts) {
+                            categoryChart = echarts.init(categoryChartDom);
+                            const categories = categoryData.map(item => item.category);
+                            const borrowRates = categoryData.map(item => parseFloat(item.rate));
+                            
+                            const categoryOption = {
+                                title: {
+                                    text: '📊 分类借阅分析',
+                                    left: 'center'
+                                },
+                                tooltip: {
+                                    formatter: '{b}: {c}%'
+                                },
+                                xAxis: {
+                                    type: 'category',
+                                    data: categories
+                                },
+                                yAxis: {
+                                    type: 'value',
+                                    name: '借阅率 (%)',
+                                    max: 100
+                                },
+                                series: [{
+                                    data: borrowRates,
+                                    type: 'bar',
+                                    itemStyle: {
+                                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                            { offset: 0, color: '#36D1DC' },
+                                            { offset: 1, color: '#5B86E5' }
+                                        ])
+                                    }
+                                }]
+                            };
+                            categoryChart.setOption(categoryOption);
+                        }
+                    }
+                };
+                
+                // 组件挂载时初始化图表
+                onMounted(() => {
+                    setTimeout(initCharts, 100);
+                });
+                
+                // 工具函数
+                const getDaysRemaining = (dueDateStr) => {
+                    const dueDate = new Date(dueDateStr);
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    return Math.max(0, Math.ceil((dueDate - today) / (1000 * 3600 * 24)));
+                };
+                
+                const getDaysClass = (dueDateStr) => {
+                    const days = getDaysRemaining(dueDateStr);
+                    if (days <= 1) return 'days-danger';
+                    if (days <= 3) return 'days-warning';
+                    return 'days-normal';
+                };
+                
+                const getOverdueDays = (dueDateStr) => {
+                    const dueDate = new Date(dueDateStr);
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    return Math.max(0, Math.ceil((today - dueDate) / (1000 * 3600 * 24)));
+                };
+                
+                // 查看图书详情
+                const viewBookDetails = (bookId) => {
+                    const book = books.value.find(b => b.id === bookId);
+                    if (book) {
+                        ElMessageBox.alert(`
+                            <div style="text-align: left;">
+                                <h3>📚 ${book.title}</h3>
+                                <p><strong>作者：</strong>${book.author}</p>
+                                <p><strong>分类：</strong>${book.category}</p>
+                                <p><strong>ISBN：</strong>${book.isbn}</p>
+                                <p><strong>出版社：</strong>${book.publisher || '未知'}</p>
+                                <p><strong>价格：</strong>¥${book.price.toFixed(2)}</p>
+                                <p><strong>库存：</strong>${book.availableCopies}/${book.totalCopies}</p>
+                                <p><strong>状态：</strong>${book.availableCopies > 0 ? '可借阅' : '已借出'}</p>
+                                <p><strong>简介：</strong>${book.description}</p>
+                            </div>
+                        `, '图书详情', {
+                            dangerouslyUseHTMLString: true,
+                            confirmButtonText: '关闭'
+                        });
+                    }
+                };
+                
+                // 归还图书
+                const returnBook = (borrowId) => {
+                    ElMessageBox.confirm('确认归还这本图书吗？', '归还确认', {
+                        confirmButtonText: '确认',
+                        cancelButtonText: '取消',
+                        type: 'warning'
+                    }).then(() => {
+                        const borrow = borrows.value.find(b => b.id === borrowId);
+                        if (borrow) {
+                            borrow.returnDate = formatDate(new Date());
+                            borrow.status = 'returned';
+                            
+                            // 更新图书库存
+                            const book = books.value.find(b => b.id === borrow.bookId);
+                            if (book) {
+                                book.availableCopies = Math.min(book.totalCopies, book.availableCopies + 1);
+                                saveBooks();
+                            }
+                            
+                            saveBorrows();
+                            ElMessage.success('图书归还成功！');
+                            
+                            // 检查是否有预约
+                            const pendingReservations = reservations.value.filter(r => 
+                                r.bookId === borrow.bookId && r.status === 'pending'
+                            );
+                            
+                            if (pendingReservations.length > 0) {
+                                const firstReservation = pendingReservations[0];
+                                const resIndex = reservations.value.findIndex(r => r.id === firstReservation.id);
+                                if (resIndex !== -1) {
+                                    reservations.value[resIndex].status = 'notified';
+                                    reservations.value[resIndex].notifyDate = formatDate(new Date());
+                                    reservations.value[resIndex].notifyCount = (reservations.value[resIndex].notifyCount || 0) + 1;
+                                    saveReservations();
+                                    
+                                    ElMessage.info(`图书归还成功！已通知预约者：${firstReservation.userName}`);
+                                }
+                            }
+                        }
+                    });
+                };
+                
+                // 提醒借阅者
+                const remindBorrower = (borrowId) => {
+                    const borrow = borrows.value.find(b => b.id === borrowId);
+                    if (borrow) {
+                        const dueDate = new Date(borrow.dueDate);
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const overdueDays = Math.max(0, Math.ceil((today - dueDate) / (1000 * 3600 * 24)));
+                        
+                        ElNotification({
+                            title: '提醒已发送',
+                            message: `已发送提醒给${borrow.userName}(${borrow.userContact})，${overdueDays > 0 ? `逾期${overdueDays}天` : '借阅中'}。`,
+                            type: 'info'
+                        });
+                    }
+                };
+                
+                return {
+                    books,
+                    borrows,
+                    totalBooks,
+                    availableBooks,
+                    borrowedBooks,
+                    currentBorrows,
+                    overdueBorrows,
+                    upcomingReturns,
+                    borrowRankings,
+                    categoryStats,
+                    viewBookDetails,
+                    returnBook,
+                    remindBorrower,
+                    getDaysRemaining,
+                    getDaysClass,
+                    getOverdueDays
+                };
+            },
+            template: `
+                <div>
+                    <div class="dashboard-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon">📚</div>
+                            <div class="stat-value">{{ totalBooks }}</div>
+                            <div class="stat-title">馆藏总量</div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon">✅</div>
+                            <div class="stat-value">{{ availableBooks }}</div>
+                            <div class="stat-title">可借阅</div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon">👤</div>
+                            <div class="stat-value">{{ borrowedBooks }}</div>
+                            <div class="stat-title">在借数量</div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon">⚠️</div>
+                            <div class="stat-value">{{ overdueBorrows.length }}</div>
+                            <div class="stat-title">逾期数量</div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon">⏰</div>
+                            <div class="stat-value">{{ upcomingReturns.length }}</div>
+                            <div class="stat-title">即将到期</div>
+                        </div>
+                    </div>
+                    
+                    <el-alert 
+                        v-if="overdueBorrows.length > 0"
+                        title="逾期提醒"
+                        :description="'有 ' + overdueBorrows.length + ' 本图书已逾期，请及时处理！'"
+                        type="warning"
+                        show-icon
+                        style="margin-bottom: 20px;"
+                    />
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px;">
+                        <!-- 热门图书 -->
+                        <el-card class="custom-card">
+                            <template #header>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span>📚</span>
+                                    <span>热门图书（最近添加）</span>
+                                </div>
+                            </template>
+                            <div class="scroll-container">
+                                <div v-for="book in books.slice(0, 5)" :key="book.id" class="list-item">
+                                    <div class="book-cover">📖</div>
+                                    <div class="book-info">
+                                        <h4>{{ book.title }}</h4>
+                                        <p>{{ book.author }} • {{ book.category }}</p>
+                                        <span :class="'status-badge ' + (book.availableCopies > 0 ? 'status-available' : 'status-borrowed')">
+                                            {{ book.availableCopies > 0 ? '可借阅' : '已借出' }}
+                                        </span>
+                                        <div style="margin-top: 5px; font-size: 12px; color: #6c757d;">
+                                            库存: {{ book.availableCopies }}/{{ book.totalCopies }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </el-card>
+                        
+                        <!-- 即将到期 -->
+                        <el-card class="custom-card">
+                            <template #header>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span>⏰</span>
+                                    <span>即将到期（{{ upcomingReturns.length }}本）</span>
+                                </div>
+                            </template>
+                            <div class="scroll-container">
+                                <div v-if="upcomingReturns.length === 0" style="padding: 40px; text-align: center; color: #6c757d;">
+                                    <div style="font-size: 40px; margin-bottom: 10px;">✅</div>
+                                    <p>暂无即将到期的借阅</p>
+                                </div>
+                                
+                                <div v-for="borrow in upcomingReturns" :key="borrow.id" style="padding: 15px; border-bottom: 1px solid #e9ecef;">
+                                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 5px;">
+                                        <h4 style="margin: 0;">{{ borrow.bookTitle }}</h4>
+                                        <span :class="'days-remaining ' + getDaysClass(borrow.dueDate)">
+                                            {{ getDaysRemaining(borrow.dueDate) }}天
+                                        </span>
+                                    </div>
+                                    <p style="margin: 0 0 8px 0; color: #6c757d; font-size: 14px;">
+                                        借阅人：{{ borrow.userName }}
+                                    </p>
+                                    <div style="font-size: 12px; color: #6c757d;">
+                                        应还日期：{{ borrow.dueDate }}
+                                        <el-button 
+                                            type="primary" 
+                                            size="small" 
+                                            @click="returnBook(borrow.id)"
+                                            style="float: right;"
+                                        >
+                                            归还
+                                        </el-button>
+                                    </div>
+                                </div>
+                            </div>
+                        </el-card>
+                    </div>
+                    
+                    <!-- 数据可视化图表 -->
+                    <el-card class="custom-card" style="margin-top: 20px;">
+                        <template #header>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span>📊</span>
+                                <span>数据可视化分析</span>
+                            </div>
+                        </template>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 30px;">
+                            <div>
+                                <div id="bookRankingsChart" class="chart-container"></div>
+                            </div>
+                            <div>
+                                <div id="categoryChart" class="chart-container"></div>
+                            </div>
+                        </div>
+                    </el-card>
+                    
+                    <!-- 逾期借阅列表 -->
+                    <el-card v-if="overdueBorrows.length > 0" class="custom-card" style="margin-top: 20px;">
+                        <template #header>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span>🚨</span>
+                                <span>逾期借阅（{{ overdueBorrows.length }}本）</span>
+                            </div>
+                        </template>
+                        
+                        <el-table :data="overdueBorrows" class="custom-table">
+                            <el-table-column prop="bookTitle" label="图书名称" width="200" />
+                            <el-table-column prop="userName" label="借阅人" width="120" />
+                            <el-table-column prop="userContact" label="联系方式" width="120" />
+                            <el-table-column prop="dueDate" label="应还日期" width="120" />
+                            <el-table-column label="逾期天数" width="100">
+                                <template #default="{ row }">
+                                    <span class="days-remaining days-danger">
+                                        {{ getOverdueDays(row.dueDate) }}天
+                                    </span>
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="操作" width="180">
+                                <template #default="{ row }">
+                                    <el-button type="danger" size="small" @click="returnBook(row.id)">
+                                        归还
+                                    </el-button>
+                                    <el-button type="warning" size="small" @click="remindBorrower(row.id)">
+                                        提醒
+                                    </el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                    </el-card>
+                </div>
+            `
+        };
+
+        // 图书管理组件
+        const BookManagement = {
+            setup() {
+                const { ElMessage, ElMessageBox } = ElementPlus;
+                
+                // 响应式数据
+                const books = ref(JSON.parse(localStorage.getItem('library_books')) || getDefaultBooks());
+                const borrows = ref(JSON.parse(localStorage.getItem('library_borrows')) || []);
+                const reservations = ref(JSON.parse(localStorage.getItem('library_reservations')) || getDefaultReservations());
+                
+                // 表单和搜索数据
+                const searchKeyword = ref('');
+                const categoryFilter = ref('');
+                const statusFilter = ref('');
+                const showAddModal = ref(false);
+                const showBorrowModal = ref(false);
+                const currentBook = ref(null);
+                const borrowForm = reactive({
+                    userName: '',
+                    userContact: '',
+                    days: 14
+                });
+                const editForm = reactive({
+                    title: '',
+                    author: '',
+                    isbn: '',
+                    category: '文学',
+                    publisher: '',
+                    price: '',
+                    totalCopies: 1,
+                    description: ''
+                });
+                
+                // 保存数据函数
+                const saveBooks = () => {
+                    localStorage.setItem('library_books', JSON.stringify(books.value));
+                };
+                
+                const saveBorrows = () => {
+                    localStorage.setItem('library_borrows', JSON.stringify(borrows.value));
+                };
+                
+                const saveReservations = () => {
+                    localStorage.setItem('library_reservations', JSON.stringify(reservations.value));
+                };
+                
+                // 过滤后的图书列表
+                const filteredBooks = computed(() => {
+                    return books.value.filter(book => {
+                        // 搜索过滤
+                        if (searchKeyword.value) {
+                            const keyword = searchKeyword.value.toLowerCase();
+                            if (!book.title.toLowerCase().includes(keyword) &&
+                                !book.author.toLowerCase().includes(keyword) &&
+                                !book.isbn.includes(searchKeyword.value)) {
+                                return false;
+                            }
+                        }
+                        
+                        // 分类过滤
+                        if (categoryFilter.value && book.category !== categoryFilter.value) {
+                            return false;
+                        }
+                        
+                        // 状态过滤
+                        if (statusFilter.value) {
+                            const isAvailable = book.availableCopies > 0;
+                            if (statusFilter.value === 'available' && !isAvailable) return false;
+                            if (statusFilter.value === 'borrowed' && isAvailable) return false;
+                        }
+                        
+                        return true;
+                    });
+                });
+                
+                // 添加图书
+                const handleAddBook = () => {
+                    if (!editForm.title || !editForm.author || !editForm.isbn) {
+                        ElMessage.warning('请填写必填字段！');
+                        return;
+                    }
+                    
+                    if (!/^[0-9]{13}$/.test(editForm.isbn)) {
+                        ElMessage.warning('ISBN必须是13位数字！');
+                        return;
+                    }
+                    
+                    const newBook = {
+                        id: Date.now().toString(),
+                        title: editForm.title,
+                        author: editForm.author,
+                        isbn: editForm.isbn,
+                        category: editForm.category,
+                        publisher: editForm.publisher || '',
+                        price: parseFloat(editForm.price) || 0,
+                        totalCopies: parseInt(editForm.totalCopies) || 1,
+                        availableCopies: parseInt(editForm.totalCopies) || 1,
+                        description: editForm.description || '',
+                        status: 'available'
+                    };
+                    
+                    books.value.unshift(newBook);
+                    saveBooks();
+                    showAddModal.value = false;
+                    resetEditForm();
+                    ElMessage.success('图书添加成功！');
+                };
+                
+                // 编辑图书
+                const handleEditBook = (book) => {
+                    currentBook.value = book;
+                    editForm.title = book.title;
+                    editForm.author = book.author;
+                    editForm.isbn = book.isbn;
+                    editForm.category = book.category;
+                    editForm.publisher = book.publisher || '';
+                    editForm.price = book.price || '';
+                    editForm.totalCopies = book.totalCopies || 1;
+                    editForm.description = book.description || '';
+                    showAddModal.value = true;
+                };
+                
+                // 更新图书
+                const handleUpdateBook = () => {
+                    if (!editForm.title || !editForm.author || !editForm.isbn) {
+                        ElMessage.warning('请填写必填字段！');
+                        return;
+                    }
+                    
+                    if (!/^[0-9]{13}$/.test(editForm.isbn)) {
+                        ElMessage.warning('ISBN必须是13位数字！');
+                        return;
+                    }
+                    
+                    const index = books.value.findIndex(b => b.id === currentBook.value.id);
+                    if (index !== -1) {
+                        const oldBook = books.value[index];
+                        books.value[index] = {
+                            ...oldBook,
+                            title: editForm.title,
+                            author: editForm.author,
+                            isbn: editForm.isbn,
+                            category: editForm.category,
+                            publisher: editForm.publisher || '',
+                            price: parseFloat(editForm.price) || 0,
+                            totalCopies: parseInt(editForm.totalCopies) || 1,
+                            availableCopies: parseInt(editForm.totalCopies) - (oldBook.totalCopies - oldBook.availableCopies),
+                            description: editForm.description || ''
+                        };
+                        saveBooks();
+                        showAddModal.value = false;
+                        resetEditForm();
+                        ElMessage.success('图书更新成功！');
+                    }
+                };
+                
+                // 重置表单
+                const resetEditForm = () => {
+                    editForm.title = '';
+                    editForm.author = '';
+                    editForm.isbn = '';
+                    editForm.category = '文学';
+                    editForm.publisher = '';
+                    editForm.price = '';
+                    editForm.totalCopies = 1;
+                    editForm.description = '';
+                    currentBook.value = null;
+                };
+                
+                // 删除图书
+                const handleDeleteBook = (bookId) => {
+                    ElMessageBox.confirm('确定要删除这本图书吗？此操作不可撤销！', '删除确认', {
+                        confirmButtonText: '确定',
+                        cancelButtonText: '取消',
+                        type: 'warning'
+                    }).then(() => {
+                        const index = books.value.findIndex(book => book.id === bookId);
+                        if (index !== -1) {
+                            books.value.splice(index, 1);
+                            saveBooks();
+                            ElMessage.success('图书删除成功！');
+                        }
+                    });
+                };
+                
+                // 借阅图书
+                const handleOpenBorrowModal = (book) => {
+                    if (book.availableCopies <= 0) {
+                        ElMessage.warning('该图书暂无库存！');
+                        return;
+                    }
+                    currentBook.value = book;
+                    borrowForm.userName = '';
+                    borrowForm.userContact = '';
+                    borrowForm.days = 14;
+                    showBorrowModal.value = true;
+                };
+                
+                const handleBorrowBook = () => {
+                    if (!borrowForm.userName.trim()) {
+                        ElMessage.warning('请输入借阅人姓名！');
+                        return;
+                    }
+                    
+                    const today = new Date();
+                    const dueDate = new Date(today);
+                    dueDate.setDate(today.getDate() + borrowForm.days);
+                    
+                    const newBorrow = {
+                        id: Date.now().toString(),
+                        bookId: currentBook.value.id,
+                        bookTitle: currentBook.value.title,
+                        userName: borrowForm.userName,
+                        userContact: borrowForm.userContact,
+                        borrowDate: formatDate(today),
+                        dueDate: formatDate(dueDate),
+                        returnDate: null,
+                        days: borrowForm.days,
+                        status: 'borrowed'
+                    };
+                    
+                    borrows.value.unshift(newBorrow);
+                    saveBorrows();
+                    
+                    // 更新图书库存
+                    const bookIndex = books.value.findIndex(b => b.id === currentBook.value.id);
+                    if (bookIndex !== -1) {
+                        books.value[bookIndex].availableCopies--;
+                        saveBooks();
+                    }
+                    
+                    showBorrowModal.value = false;
+                    ElMessage.success(`《${currentBook.value.title}》借阅成功！请在${borrowForm.days}天内归还。`);
+                };
+                
+                // 预约图书
+                const handleReserveBook = (book) => {
+                    ElMessageBox.prompt('请输入预约人姓名', '图书预约', {
+                        confirmButtonText: '确定',
+                        cancelButtonText: '取消',
+                        inputPattern: /.+/,
+                        inputErrorMessage: '请输入姓名'
+                    }).then(({ value }) => {
+                        const userName = value;
+                        ElMessageBox.prompt('请输入联系方式', '联系方式', {
+                            confirmButtonText: '确定',
+                            cancelButtonText: '取消'
+                        }).then(({ value }) => {
+                            const newReservation = {
+                                id: Date.now().toString(),
+                                bookId: book.id,
+                                bookTitle: book.title,
+                                userName: userName,
+                                userContact: value || '',
+                                reservationDate: formatDate(new Date()),
+                                status: 'pending',
+                                notifyCount: 0
+                            };
+                            
+                            reservations.value.unshift(newReservation);
+                            saveReservations();
+                            ElMessage.success(`预约成功！《${book.title}》归还时会通知您。`);
+                        });
+                    });
+                };
+                
+                return {
+                    books,
+                    searchKeyword,
+                    categoryFilter,
+                    statusFilter,
+                    filteredBooks,
+                    showAddModal,
+                    showBorrowModal,
+                    currentBook,
+                    borrowForm,
+                    editForm,
+                    handleAddBook,
+                    handleEditBook,
+                    handleUpdateBook,
+                    handleDeleteBook,
+                    handleOpenBorrowModal,
+                    handleBorrowBook,
+                    handleReserveBook,
+                    resetEditForm
+                };
+            },
+            template: `
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2 style="color: #495057;">📚 图书管理</h2>
+                        <el-button type="primary" @click="showAddModal = true; resetEditForm()">
+                            ➕ 添加图书
+                        </el-button>
+                    </div>
+                    
+                    <!-- 搜索和筛选 -->
+                    <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+                        <el-input 
+                            v-model="searchKeyword"
+                            placeholder="搜索书名、作者、ISBN..."
+                            style="width: 300px;"
+                            clearable
+                        />
+                        
+                        <el-select 
+                            v-model="categoryFilter"
+                            placeholder="全部分类"
+                            style="width: 150px;"
+                            clearable
+                        >
+                            <el-option label="文学" value="文学" />
+                            <el-option label="科技" value="科技" />
+                            <el-option label="历史" value="历史" />
+                            <el-option label="艺术" value="艺术" />
+                            <el-option label="教育" value="教育" />
+                        </el-select>
+                        
+                        <el-select 
+                            v-model="statusFilter"
+                            placeholder="全部状态"
+                            style="width: 150px;"
+                            clearable
+                        >
+                            <el-option label="可借阅" value="available" />
+                            <el-option label="已借出" value="borrowed" />
+                        </el-select>
+                        
+                        <el-button @click="searchKeyword = ''; categoryFilter = ''; statusFilter = '';">
+                            重置
+                        </el-button>
+                    </div>
+                    
+                    <!-- 图书列表 -->
+                    <el-card class="custom-card">
+                        <el-table :data="filteredBooks" class="custom-table">
+                            <el-table-column type="index" label="#" width="50" />
+                            <el-table-column prop="title" label="书名" min-width="200" />
+                            <el-table-column prop="author" label="作者" width="120" />
+                            <el-table-column prop="isbn" label="ISBN" width="150" />
+                            <el-table-column prop="category" label="分类" width="100" />
+                            <el-table-column label="库存" width="100">
+                                <template #default="{ row }">
+                                    {{ row.availableCopies }}/{{ row.totalCopies }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="状态" width="100">
+                                <template #default="{ row }">
+                                    <span :class="'status-badge ' + (row.availableCopies > 0 ? 'status-available' : 'status-borrowed')">
+                                        {{ row.availableCopies > 0 ? '可借阅' : '已借出' }}
+                                    </span>
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="操作" width="300" fixed="right">
+                                <template #default="{ row }">
+                                    <el-button 
+                                        v-if="row.availableCopies > 0"
+                                        type="success" 
+                                        size="small"
+                                        @click="handleOpenBorrowModal(row)"
+                                    >
+                                        借阅
+                                    </el-button>
+                                    
+                                    <el-button 
+                                        v-else
+                                        type="warning" 
+                                        size="small"
+                                        @click="handleReserveBook(row)"
+                                    >
+                                        预约
+                                    </el-button>
+                                    
+                                    <el-button 
+                                        type="info" 
+                                        size="small"
+                                        @click="handleEditBook(row)"
+                                    >
+                                        编辑
+                                    </el-button>
+                                    
+                                    <el-button 
+                                        type="danger" 
+                                        size="small"
+                                        @click="handleDeleteBook(row.id)"
+                                    >
+                                        删除
+                                    </el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                    </el-card>
+                    
+                    <!-- 添加/编辑图书模态框 -->
+                    <el-dialog 
+                        :title="currentBook ? '编辑图书' : '添加新图书'"
+                        v-model="showAddModal"
+                        width="500px"
+                        @close="resetEditForm"
+                    >
+                        <el-form :model="editForm" label-width="100px">
+                            <el-form-item label="书名" required>
+                                <el-input v-model="editForm.title" placeholder="请输入书名" />
+                            </el-form-item>
+                            
+                            <el-form-item label="作者" required>
+                                <el-input v-model="editForm.author" placeholder="请输入作者" />
+                            </el-form-item>
+                            
+                            <el-form-item label="ISBN" required>
+                                <el-input v-model="editForm.isbn" placeholder="请输入13位ISBN" />
+                            </el-form-item>
+                            
+                            <el-form-item label="分类">
+                                <el-select v-model="editForm.category" style="width: 100%;">
+                                    <el-option label="文学" value="文学" />
+                                    <el-option label="科技" value="科技" />
+                                    <el-option label="历史" value="历史" />
+                                    <el-option label="艺术" value="艺术" />
+                                    <el-option label="教育" value="教育" />
+                                </el-select>
+                            </el-form-item>
+                            
+                            <el-form-item label="出版社">
+                                <el-input v-model="editForm.publisher" placeholder="请输入出版社" />
+                            </el-form-item>
+                            
+                            <el-form-item label="价格">
+                                <el-input v-model="editForm.price" type="number" placeholder="请输入价格">
+                                    <template #append>元</template>
+                                </el-input>
+                            </el-form-item>
+                            
+                            <el-form-item label="总数量">
+                                <el-input-number v-model="editForm.totalCopies" :min="1" />
+                            </el-form-item>
+                            
+                            <el-form-item label="简介">
+                                <el-input 
+                                    v-model="editForm.description" 
+                                    type="textarea" 
+                                    :rows="3" 
+                                    placeholder="请输入图书简介"
+                                />
+                            </el-form-item>
+                        </el-form>
+                        
+                        <template #footer>
+                            <el-button @click="showAddModal = false; resetEditForm()">取消</el-button>
+                            <el-button type="primary" @click="currentBook ? handleUpdateBook() : handleAddBook()">
+                                {{ currentBook ? '更新' : '添加' }}
+                            </el-button>
+                        </template>
+                    </el-dialog>
+                    
+                    <!-- 借阅图书模态框 -->
+                    <el-dialog 
+                        title="借阅图书"
+                        v-model="showBorrowModal"
+                        width="400px"
+                    >
+                        <div v-if="currentBook" style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                            <div style="font-weight: 500; margin-bottom: 5px;">图书信息</div>
+                            <div style="font-size: 14px; color: #6c757d;">
+                                书名: 《{{ currentBook.title }}》<br>
+                                作者: {{ currentBook.author }} | 分类: {{ currentBook.category }}<br>
+                                可借数量: {{ currentBook.availableCopies }}/{{ currentBook.totalCopies }}
+                            </div>
+                        </div>
+                        
+                        <el-form :model="borrowForm" label-width="100px">
+                            <el-form-item label="借阅人姓名" required>
+                                <el-input v-model="borrowForm.userName" placeholder="请输入借阅人姓名" />
+                            </el-form-item>
+                            
+                            <el-form-item label="联系方式">
+                                <el-input v-model="borrowForm.userContact" placeholder="请输入联系方式" />
+                            </el-form-item>
+                            
+                            <el-form-item label="借阅天数">
+                                <el-select v-model="borrowForm.days" style="width: 100%;">
+                                    <el-option label="7天" :value="7" />
+                                    <el-option label="14天" :value="14" />
+                                    <el-option label="30天" :value="30" />
+                                    <el-option label="60天" :value="60" />
+                                </el-select>
+                            </el-form-item>
+                        </el-form>
+                        
+                        <template #footer>
+                            <el-button @click="showBorrowModal = false">取消</el-button>
+                            <el-button type="primary" @click="handleBorrowBook">确认借阅</el-button>
+                        </template>
+                    </el-dialog>
+                </div>
+            `
+        };
+
+        // 借阅管理组件
+        const BorrowManagement = {
+            setup() {
+                const { ElMessage, ElMessageBox } = ElementPlus;
+                
+                // 响应式数据
+                const borrows = ref(JSON.parse(localStorage.getItem('library_borrows')) || []);
+                const books = ref(JSON.parse(localStorage.getItem('library_books')) || getDefaultBooks());
+                
+                // 保存数据函数
+                const saveBorrows = () => {
+                    localStorage.setItem('library_borrows', JSON.stringify(borrows.value));
+                };
+                
+                const saveBooks = () => {
+                    localStorage.setItem('library_books', JSON.stringify(books.value));
+                };
+                
+                // 计算属性
+                const currentBorrows = computed(() => borrows.value.filter(borrow => !borrow.returnDate));
+                const overdueBorrows = computed(() => borrows.value.filter(borrow => {
+                    if (borrow.returnDate) return false;
+                    const dueDate = new Date(borrow.dueDate);
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    return dueDate < today;
+                }));
+                const borrowHistory = computed(() => borrows.value.filter(borrow => borrow.returnDate).slice(0, 10));
+                
+                // 工具函数
+                const getDaysRemaining = (dueDateStr) => {
+                    const dueDate = new Date(dueDateStr);
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    return Math.max(0, Math.ceil((dueDate - today) / (1000 * 3600 * 24)));
+                };
+                
+                const getDaysClass = (dueDateStr) => {
+                    const days = getDaysRemaining(dueDateStr);
+                    if (days <= 1) return 'days-danger';
+                    if (days <= 3) return 'days-warning';
+                    return 'days-normal';
+                };
+                
+                const getOverdueDays = (dueDateStr) => {
+                    const dueDate = new Date(dueDateStr);
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    return Math.max(0, Math.ceil((today - dueDate) / (1000 * 3600 * 24)));
+                };
+                
+                // 归还图书
+                const handleReturnBook = (borrowId) => {
+                    ElMessageBox.confirm('确认归还这本图书吗？', '归还确认', {
+                        confirmButtonText: '确认',
+                        cancelButtonText: '取消',
+                        type: 'warning'
+                    }).then(() => {
+                        const borrow = borrows.value.find(b => b.id === borrowId);
+                        if (borrow) {
+                            borrow.returnDate = formatDate(new Date());
+                            borrow.status = 'returned';
+                            
+                            // 更新图书库存
+                            const book = books.value.find(b => b.id === borrow.bookId);
+                            if (book) {
+                                book.availableCopies = Math.min(book.totalCopies, book.availableCopies + 1);
+                                saveBooks();
+                            }
+                            
+                            saveBorrows();
+                            ElMessage.success('图书归还成功！');
+                        }
+                    });
+                };
+                
+                // 续借图书
+                const handleExtendBorrow = (borrow) => {
+                    ElMessageBox.prompt('请输入续借天数（7-30天）', '续借图书', {
+                        confirmButtonText: '确定',
+                        cancelButtonText: '取消',
+                        inputPattern: /^(?:[7-9]|[12][0-9]|30)$/,
+                        inputErrorMessage: '请输入7-30之间的数字'
+                    }).then(({ value }) => {
+                        if (borrow && !borrow.returnDate) {
+                            const extendDays = parseInt(value);
+                            const dueDate = new Date(borrow.dueDate);
+                            dueDate.setDate(dueDate.getDate() + extendDays);
+                            borrow.dueDate = formatDate(dueDate);
+                            borrow.days = borrow.days + extendDays;
+                            saveBorrows();
+                            ElMessage.success(`续借成功！新的还书日期：${borrow.dueDate}`);
+                        }
+                    });
+                };
+                
+                // 提醒借阅者
+                const handleRemindBorrower = (borrowId) => {
+                    const borrow = borrows.value.find(b => b.id === borrowId);
+                    if (borrow) {
+                        const dueDate = new Date(borrow.dueDate);
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const overdueDays = Math.max(0, Math.ceil((today - dueDate) / (1000 * 3600 * 24)));
+                        
+                        ElMessage.info(`已发送提醒给${borrow.userName}(${borrow.userContact})，${overdueDays > 0 ? `逾期${overdueDays}天` : '借阅中'}。`);
+                    }
+                };
+                
+                return {
+                    borrows,
+                    currentBorrows,
+                    overdueBorrows,
+                    borrowHistory,
+                    handleReturnBook,
+                    handleExtendBorrow,
+                    handleRemindBorrower,
+                    getDaysRemaining,
+                    getDaysClass,
+                    getOverdueDays
+                };
+            },
+            template: `
+                <div>
+                    <h2 style="margin-bottom: 20px; color: #495057;">📖 借阅管理</h2>
+                    
+                    <div style="margin-bottom: 20px; display: flex; gap: 10px;">
+                        <el-tag type="danger">
+                            逾期: {{ overdueBorrows.length }}本
+                        </el-tag>
+                        <el-tag type="warning">
+                            在借: {{ currentBorrows.filter(b => !overdueBorrows.includes(b)).length }}本
+                        </el-tag>
+                        <el-tag type="success">
+                            已还: {{ borrowHistory.length }}本
+                        </el-tag>
+                    </div>
+                    
+                    <!-- 逾期借阅 -->
+                    <el-card v-if="overdueBorrows.length > 0" class="custom-card" style="margin-bottom: 30px;">
+                        <template #header>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span>🚨</span>
+                                <span>逾期借阅（{{ overdueBorrows.length }}本）</span>
+                            </div>
+                        </template>
+                        
+                        <el-table :data="overdueBorrows" class="custom-table">
+                            <el-table-column prop="bookTitle" label="图书名称" min-width="200" />
+                            <el-table-column prop="userName" label="借阅人" width="120" />
+                            <el-table-column prop="userContact" label="联系方式" width="120" />
+                            <el-table-column prop="borrowDate" label="借阅日期" width="120" />
+                            <el-table-column prop="dueDate" label="应还日期" width="120" />
+                            <el-table-column label="逾期天数" width="100">
+                                <template #default="{ row }">
+                                    <span class="days-remaining days-danger">
+                                        {{ getOverdueDays(row.dueDate) }}天
+                                    </span>
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="操作" width="180">
+                                <template #default="{ row }">
+                                    <el-button type="danger" size="small" @click="handleReturnBook(row.id)">
+                                        归还
+                                    </el-button>
+                                    <el-button type="warning" size="small" @click="handleRemindBorrower(row.id)">
+                                        提醒
+                                    </el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                    </el-card>
+                    
+                    <!-- 当前借阅 -->
+                    <el-card class="custom-card" style="margin-bottom: 30px;">
+                        <template #header>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span>📖</span>
+                                <span>当前借阅</span>
+                            </div>
+                        </template>
+                        
+                        <el-table :data="currentBorrows.filter(b => !overdueBorrows.includes(b))" class="custom-table">
+                            <el-table-column prop="bookTitle" label="图书名称" min-width="200" />
+                            <el-table-column prop="userName" label="借阅人" width="120" />
+                            <el-table-column prop="userContact" label="联系方式" width="120" />
+                            <el-table-column prop="borrowDate" label="借阅日期" width="120" />
+                            <el-table-column prop="dueDate" label="应还日期" width="120" />
+                            <el-table-column label="剩余天数" width="100">
+                                <template #default="{ row }">
+                                    <span :class="'days-remaining ' + getDaysClass(row.dueDate)">
+                                        {{ getDaysRemaining(row.dueDate) }}天
+                                    </span>
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="操作" width="180">
+                                <template #default="{ row }">
+                                    <el-button type="primary" size="small" @click="handleReturnBook(row.id)">
+                                        归还
+                                    </el-button>
+                                    <el-button type="info" size="small" @click="handleExtendBorrow(row)">
+                                        续借
+                                    </el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                    </el-card>
+                    
+                    <!-- 借阅历史 -->
+                    <el-card v-if="borrowHistory.length > 0" class="custom-card">
+                        <template #header>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span>📋</span>
+                                <span>借阅历史（最近10条）</span>
+                            </div>
+                        </template>
+                        
+                        <el-table :data="borrowHistory" class="custom-table">
+                            <el-table-column prop="bookTitle" label="图书名称" min-width="200" />
+                            <el-table-column prop="userName" label="借阅人" width="120" />
+                            <el-table-column prop="borrowDate" label="借阅日期" width="120" />
+                            <el-table-column prop="dueDate" label="应还日期" width="120" />
+                            <el-table-column prop="returnDate" label="归还日期" width="120" />
+                            <el-table-column label="状态" width="100">
+                                <template #default>
+                                    <el-tag type="success">已归还</el-tag>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                    </el-card>
+                </div>
+            `
+        };
+
+        // 预约管理组件
+        const ReservationManagement = {
+            setup() {
+                const { ElMessage, ElMessageBox } = ElementPlus;
+                
+                // 响应式数据
+                const reservations = ref(JSON.parse(localStorage.getItem('library_reservations')) || getDefaultReservations());
+                const books = ref(JSON.parse(localStorage.getItem('library_books')) || getDefaultBooks());
+                const borrows = ref(JSON.parse(localStorage.getItem('library_borrows')) || []);
+                
+                // 保存数据函数
+                const saveReservations = () => {
+                    localStorage.setItem('library_reservations', JSON.stringify(reservations.value));
+                };
+                
+                const saveBooks = () => {
+                    localStorage.setItem('library_books', JSON.stringify(books.value));
+                };
+                
+                const saveBorrows = () => {
+                    localStorage.setItem('library_borrows', JSON.stringify(borrows.value));
+                };
+                
+                // 计算属性
+                const pendingReservations = computed(() => reservations.value.filter(r => r.status === 'pending'));
+                const notifiedReservations = computed(() => reservations.value.filter(r => r.status === 'notified'));
+                
+                // 工具函数
+                const getWaitingDays = (dateStr) => {
+                    const date = new Date(dateStr);
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    return Math.ceil((today - date) / (1000 * 3600 * 24));
+                };
+                
+                // 通知预约者
+                const handleNotify = (reservationId) => {
+                    const index = reservations.value.findIndex(r => r.id === reservationId);
+                    if (index !== -1) {
+                        reservations.value[index].status = 'notified';
+                        reservations.value[index].notifyDate = formatDate(new Date());
+                        reservations.value[index].notifyCount = (reservations.value[index].notifyCount || 0) + 1;
+                        saveReservations();
+                        ElMessage.success('已通知预约者！');
+                    }
+                };
+                
+                // 取消预约
+                const handleCancel = (reservationId) => {
+                    ElMessageBox.confirm('确定要取消这个预约吗？', '取消确认', {
+                        confirmButtonText: '确定',
+                        cancelButtonText: '取消',
+                        type: 'warning'
+                    }).then(() => {
+                        const index = reservations.value.findIndex(r => r.id === reservationId);
+                        if (index !== -1) {
+                            reservations.value.splice(index, 1);
+                            saveReservations();
+                            ElMessage.success('预约已取消！');
+                        }
+                    });
+                };
+                
+                // 转为借阅
+                const handleConvertToBorrow = (reservation) => {
+                    const book = books.value.find(b => b.id === reservation.bookId);
+                    if (book && book.availableCopies > 0) {
+                        // 创建借阅记录
+                        const today = new Date();
+                        const dueDate = new Date(today);
+                        dueDate.setDate(today.getDate() + 14);
+                        
+                        const borrow = {
+                            id: Date.now().toString(),
+                            bookId: reservation.bookId,
+                            bookTitle: reservation.bookTitle,
+                            userName: reservation.userName,
+                            userContact: reservation.userContact,
+                            borrowDate: formatDate(today),
+                            dueDate: formatDate(dueDate),
+                            returnDate: null,
+                            days: 14,
+                            status: 'borrowed'
+                        };
+                        
+                        // 更新图书库存
+                        book.availableCopies--;
+                        saveBooks();
+                        
+                        // 添加借阅记录
+                        borrows.value.unshift(borrow);
+                        saveBorrows();
+                        
+                        // 删除预约记录
+                        const index = reservations.value.findIndex(r => r.id === reservation.id);
+                        if (index !== -1) {
+                            reservations.value.splice(index, 1);
+                            saveReservations();
+                        }
+                        
+                        ElMessage.success(`预约已转为借阅！《${reservation.bookTitle}》已借阅给${reservation.userName}。`);
+                    } else {
+                        ElMessage.warning('该图书目前没有可借库存！');
+                    }
+                };
+                
+                return {
+                    reservations,
+                    pendingReservations,
+                    notifiedReservations,
+                    books,
+                    handleNotify,
+                    handleCancel,
+                    handleConvertToBorrow,
+                    getWaitingDays
+                };
+            },
+            template: `
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2 style="color: #495057;">🔔 预约管理</h2>
+                        <div style="display: flex; gap: 10px;">
+                            <el-tag type="warning">
+                                等待中: {{ pendingReservations.length }}个
+                            </el-tag>
+                            <el-tag type="info">
+                                已通知: {{ notifiedReservations.length }}个
+                            </el-tag>
+                        </div>
+                    </div>
+                    
+                    <!-- 等待处理 -->
+                    <el-card v-if="pendingReservations.length > 0" class="custom-card" style="margin-bottom: 30px;">
+                        <template #header>
+                            <h3 style="margin: 0;">等待处理</h3>
+                        </template>
+                        
+                        <el-table :data="pendingReservations" class="custom-table">
+                            <el-table-column prop="bookTitle" label="图书名称" min-width="200" />
+                            <el-table-column prop="userName" label="预约人" width="120" />
+                            <el-table-column prop="userContact" label="联系方式" width="120" />
+                            <el-table-column prop="reservationDate" label="预约日期" width="120" />
+                            <el-table-column label="等待天数" width="100">
+                                <template #default="{ row }">
+                                    <span :class="'days-remaining ' + (getWaitingDays(row.reservationDate) > 7 ? 'days-warning' : 'days-normal')">
+                                        {{ getWaitingDays(row.reservationDate) }}天
+                                    </span>
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="操作" width="180">
+                                <template #default="{ row }">
+                                    <el-button type="success" size="small" @click="handleNotify(row.id)">
+                                        通知可借
+                                    </el-button>
+                                    <el-button type="danger" size="small" @click="handleCancel(row.id)">
+                                        取消
+                                    </el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                    </el-card>
+                    
+                    <!-- 已通知 -->
+                    <el-card v-if="notifiedReservations.length > 0" class="custom-card">
+                        <template #header>
+                            <h3 style="margin: 0;">已通知</h3>
+                        </template>
+                        
+                        <el-table :data="notifiedReservations" class="custom-table">
+                            <el-table-column prop="bookTitle" label="图书名称" min-width="200" />
+                            <el-table-column prop="userName" label="预约人" width="120" />
+                            <el-table-column prop="userContact" label="联系方式" width="120" />
+                            <el-table-column prop="reservationDate" label="预约日期" width="120" />
+                            <el-table-column prop="notifyDate" label="通知日期" width="120" />
+                            <el-table-column prop="notifyCount" label="通知次数" width="100" />
+                            <el-table-column label="操作" width="180">
+                                <template #default="{ row }">
+                                    <el-button 
+                                        v-if="books.find(b => b.id === row.bookId)?.availableCopies > 0"
+                                        type="info" 
+                                        size="small" 
+                                        @click="handleConvertToBorrow(row)"
+                                    >
+                                        转为借阅
+                                    </el-button>
+                                    <el-button type="danger" size="small" @click="handleCancel(row.id)">
+                                        取消
+                                    </el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                    </el-card>
+                </div>
+            `
+        };
+
+        // 扫码添加组件
+        const ScanBook = {
+            setup() {
+                const { ElMessage, ElNotification } = ElementPlus;
+                
+                // 响应式数据
+                const books = ref(JSON.parse(localStorage.getItem('library_books')) || getDefaultBooks());
+                const isScanning = ref(false);
+                const scanResult = ref(null);
+                
+                // 保存数据函数
+                const saveBooks = () => {
+                    localStorage.setItem('library_books', JSON.stringify(books.value));
+                };
+                
+                // 模拟扫描图书
+                const mockBooks = [
+                    {
+                        title: 'Python编程：从入门到实践',
+                        author: 'Eric Matthes',
+                        isbn: '9787115428028',
+                        category: '科技',
+                        publisher: '人民邮电出版社',
+                        price: 89.00
+                    },
+                    {
+                        title: '数据结构与算法分析',
+                        author: 'Mark Allen Weiss',
+                        isbn: '9787111507193',
+                        category: '科技',
+                        publisher: '机械工业出版社',
+                        price: 79.00
+                    }
+                ];
+                
+                const startScan = () => {
+                    isScanning.value = true;
+                    scanResult.value = null;
+                    
+                    // 模拟扫描过程
+                    setTimeout(() => {
+                        const randomBook = mockBooks[Math.floor(Math.random() * mockBooks.length)];
+                        scanResult.value = randomBook;
+                        isScanning.value = false;
+                        
+                        ElNotification({
+                            title: '扫描成功',
+                            message: `已扫描到图书：《${randomBook.title}》`,
+                            type: 'success'
+                        });
+                    }, 2000);
+                };
+                
+                const stopScan = () => {
+                    isScanning.value = false;
+                    scanResult.value = null;
+                };
+                
+                const addScannedBook = () => {
+                    if (scanResult.value) {
+                        // 检查是否已存在
+                        const existingBook = books.value.find(b => b.isbn === scanResult.value.isbn);
+                        if (existingBook) {
+                            ElMessage.warning('该图书已在库中！');
+                            return;
+                        }
+                        
+                        const newBook = {
+                            id: Date.now().toString(),
+                            title: scanResult.value.title,
+                            author: scanResult.value.author,
+                            isbn: scanResult.value.isbn,
+                            category: scanResult.value.category,
+                            publisher: scanResult.value.publisher,
+                            price: scanResult.value.price,
+                            totalCopies: 1,
+                            availableCopies: 1,
+                            description: '通过扫描添加的图书',
+                            status: 'available'
+                        };
+                        
+                        books.value.unshift(newBook);
+                        saveBooks();
+                        stopScan();
+                        ElMessage.success(`《${scanResult.value.title}》已成功添加到图书库！`);
+                    }
+                };
+                
+                const manualInput = () => {
+                    ElNotification({
+                        title: '提示',
+                        message: '请使用"图书管理"页面的添加功能',
+                        type: 'info'
+                    });
+                };
+                
+                return {
+                    isScanning,
+                    scanResult,
+                    startScan,
+                    stopScan,
+                    addScannedBook,
+                    manualInput
+                };
+            },
+            template: `
+                <div style="text-align: center; padding: 40px 20px;">
+                    <div style="font-size: 80px; margin-bottom: 20px; color: #667eea;">📷</div>
+                    <h2 style="margin-bottom: 20px; color: #495057;">扫码添加图书</h2>
+                    <p style="color: #6c757d; margin-bottom: 40px; max-width: 600px; margin-left: auto; margin-right: auto;">
+                        将图书背面的ISBN条形码对准摄像头进行扫描，系统会自动识别图书信息并添加到库中。
+                    </p>
+                    
+                    <div style="max-width: 400px; margin: 0 auto;">
+                        <!-- 扫描预览区域 -->
+                        <div style="width: 100%; height: 300px; background: #f8f9fa; border-radius: 12px; 
+                                 display: flex; flex-direction: column; justify-content: center; align-items: center; margin-bottom: 30px;
+                                 position: relative; overflow: hidden;">
+                            
+                            <!-- 扫描线动画 -->
+                            <div 
+                                v-if="isScanning"
+                                style="width: 80%; height: 2px; background: #667eea; position: absolute; top: 20%; 
+                                     animation: scan 2s linear infinite;"
+                            ></div>
+                            
+                            <!-- 扫描状态显示 -->
+                            <div style="color: #6c757d; font-size: 14px; z-index: 1;">
+                                <div v-if="isScanning" style="font-size: 48px; margin-bottom: 10px; animation: pulse 1s infinite;">🔍</div>
+                                <div v-else style="font-size: 48px; margin-bottom: 10px;">📷</div>
+                                <div v-if="isScanning">正在扫描中...</div>
+                                <div v-else-if="scanResult">扫描成功！</div>
+                                <div v-else>等待扫描...</div>
+                            </div>
+                        </div>
+                        
+                        <!-- 控制按钮 -->
+                        <div style="display: flex; gap: 10px; justify-content: center;">
+                            <el-button 
+                                type="primary" 
+                                @click="startScan" 
+                                :disabled="isScanning"
+                                style="flex: 1;"
+                            >
+                                🎥 开始扫描
+                            </el-button>
+                            
+                            <el-button 
+                                v-if="isScanning"
+                                @click="stopScan"
+                                style="flex: 1;"
+                            >
+                                ⏹️ 停止扫描
+                            </el-button>
+                            
+                            <el-button 
+                                @click="manualInput"
+                                style="flex: 1;"
+                            >
+                                ⌨️ 手动输入
+                            </el-button>
+                        </div>
+                        
+                        <!-- 扫描结果 -->
+                        <div v-if="scanResult" style="margin-top: 30px; text-align: left;">
+                            <el-alert 
+                                title="扫描到图书" 
+                                type="success"
+                                :description="'《' + scanResult.title + '》 - ' + scanResult.author"
+                                show-icon
+                            />
+                            
+                            <div style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                                <p><strong>ISBN：</strong>{{ scanResult.isbn }}</p>
+                                <p><strong>分类：</strong>{{ scanResult.category }}</p>
+                                <p><strong>出版社：</strong>{{ scanResult.publisher }}</p>
+                                <p><strong>价格：</strong>¥{{ scanResult.price.toFixed(2) }}</p>
+                            </div>
+                            
+                            <el-button 
+                                type="primary" 
+                                @click="addScannedBook"
+                                style="width: 100%; margin-top: 15px;"
+                            >
+                                ➕ 添加到图书库
+                            </el-button>
+                        </div>
+                    </div>
+                </div>
+            `
+        };
+
+        // 主应用组件
+        const App = {
+            setup() {
+                const currentPage = ref('dashboard');
+                
+                // 动态组件映射
+                const pageComponents = {
+                    dashboard: Dashboard,
+                    books: BookManagement,
+                    borrow: BorrowManagement,
+                    reservations: ReservationManagement,
+                    scan: ScanBook
+                };
+                
+                const CurrentPageComponent = computed(() => pageComponents[currentPage.value]);
+                
+                return {
+                    currentPage,
+                    CurrentPageComponent
+                };
+            },
+            template: `
+                <div id="app">
+                    <Header />
+                    <NavMenu :current-page="currentPage" @change-page="currentPage = $event" />
+                    <div class="content">
+                        <component :is="CurrentPageComponent" />
+                    </div>
+                </div>
+            `
+        };
+
+        // 创建Vue应用
+        const app = createApp(App);
+        
+        // 使用Element Plus
+        app.use(ElementPlus);
+        
+        // 全局注册组件
+        app.component('Header', Header);
+        app.component('NavMenu', NavMenu);
+        app.component('Dashboard', Dashboard);
+        app.component('BookManagement', BookManagement);
+        app.component('BorrowManagement', BorrowManagement);
+        app.component('ReservationManagement', ReservationManagement);
+        app.component('ScanBook', ScanBook);
+        
+        // 挂载应用
+        app.mount('#app');
+        
+        // 添加CSS动画
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes scan {
+                0% { top: 20%; }
+                50% { top: 80%; }
+                100% { top: 20%; }
+            }
+            
+            @keyframes pulse {
+                0% { transform: scale(1); opacity: 0.7; }
+                50% { transform: scale(1.1); opacity: 1; }
+                100% { transform: scale(1); opacity: 0.7; }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
